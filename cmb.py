@@ -265,7 +265,7 @@ class RVE:
        ngrain : number of grains in the RVE
        odf : Orientation Distribution File (Labotex format)
        cmbfile : output file of the created RVE
-       ssym : None (0, 1) sample symmetry
+       ssym : 'mmm' or None
     """
     def __init__(self, ngrain=100, odf=None, cmbfile='temp.cmb',
                  ssym=None):
@@ -304,11 +304,8 @@ class RVE:
         print 'phi2: %6.2f'%min(self.codt[1])
         print 'phi : %6.2f'%min(self.codt[2])
 
-        # if ssym==0: ngrain = ngrain/2
-        # elif ssym==1: ngrain = ngrain/4
-        # elif ssym==2: ngrain = ngrain/8
         if ssym=='mmm': ngrain = ngrain / 4
-        elif ssym==None: ngrain=ngrain
+        elif ssym==None: ngrain = ngrain
         else: raise IOError, "Unexpected sample symmetry is given"
 
         print 'ssym:', ssym, 'ngrain=',ngrain
@@ -334,11 +331,11 @@ class RVE:
         import time
         FILE.writelines('%s\n%s\n%s\n %s %i\n'%(
                 time.asctime(),'Current texture file was made by cmb.py',
-                'contact: youngung.jeong@gmail.com',
+                'Contact: youngung.jeong@gmail.com',
                 'B', self.ngrain))
         for i in range(len(self.rve)):
             FILE.writelines(
-                '%13.7f %13.7f %13.7f   %13.7e \n'%
+                '%8.3f %8.3f %8.3f %10.4e \n'%
                 (self.rve[i][0], self.rve[i][1], self.rve[i][2],\
                      self.rve[i][3]))
         FILE.close()
@@ -376,25 +373,6 @@ class RVE:
         m3 = [[ -1,  0,  0],  [  0, -1,  0],  [  0,  0,  1]]
         mmm = [m1,m2,m3]
 
-        # # Rmir0 = self.reflect(th=0.) # RD-ND
-        # # Rmir1 = self.reflect(th=90.) # TD-ND
-        # # Rmir2 = np.zeros((3,3))
-        # # Rmir2[0,0] = 1; Rmir2[1,1] = 1; Rmir2[2,2] = -1
-
-        # print Rmir0
-        # print Rmir1
-        # print Rmir2
-        # # raw_input()
-        # # Rmir2  rotate Rmir0 by x axis 90 degree
-
-        # if iopt==0:
-        #     Rm = [Rmir0]
-        # elif iopt==1:
-        #     Rm = [Rmir0,Rmir1]
-        # elif iopt==2:
-        #     Rm = [Rmir0,Rmir1,Rmir2]
-        # else: raise IOError, 'Wrong option'
-
         gr = [] # new grains
         for i in range(len(self.rve)):
             tempgr=[]
@@ -410,36 +388,6 @@ class RVE:
 
             for j in range(len(tempgr)):
                 gr.append(tempgr[j])
-
-
-            # R0 = np.dot(cRs, Rm[0]) # RD-TD
-            # phi1, phi, phi2 = euler(a=R0, echo=False)
-            # tempgr.append([phi1,phi,phi2,self.rve[i][3]])
-
-            # #
-            # for i in range(len(Rm)):
-            #     np.dot(cRs, Rm[i]
-            # if iopt>0:
-            #     n = len(tempgr)
-            #     for j in range(n):
-            #         cRs = euler(tempgr[j][0],tempgr[j][1],tempgr[j][2],
-            #                     echo=False)
-            #         R0 = np.dot(cRs, Rm[1])
-            #         phi1,phi,phi2 = euler(a=R0, echo=False)
-            #         tempgr.append([phi1,phi,phi2,self.rve[i][3]])
-
-            # if iopt>1:
-            #     n = len(tempgr)
-            #     for j in range(n):
-            #         cRs = euler(tempgr[j][0], tempgr[j][1], tempgr[j][2],
-            #                     echo=False)
-            #         R0 = np.dot(cRs, Rm[2])
-            #         phi1,phi,phi2 = euler(a=R0, echo=False)
-            #         tempgr.append([phi1,phi,phi2,self.rve[i][3]])
-
-            # for j in range(len(tempgr)):
-            #     gr.append(tempgr[j])
-
 
         self.rve = np.array(gr)
 
@@ -536,7 +484,7 @@ class RVE:
         return RVE
     pass # end of the class RVE
 
-def main(odf, ngrain, outputfile, iplot=True, irandom=False):
+def main(odf,ngrain,outputfile,iplot=True,irandom=False,ssym=None):
     """
     Arguments
     =========
@@ -547,39 +495,39 @@ def main(odf, ngrain, outputfile, iplot=True, irandom=False):
       iplot =True : flag for plotting
       irandom=True
     """
-    import upf,time
-    import matplotlib.pyplot as plt
-    temp = RVE(ngrain=ngrain, odf=odf, cmbfile=outputfile)
+    try: import upf
+    except ImportError: iupf = False
 
-    if iplot==True:
+    import time
+    import matplotlib.pyplot as plt
+    temp = RVE(ngrain=ngrain, odf=odf,cmbfile=outputfile,ssym=ssym)
+
+    if iplot==True and iupf:
         mypf = upf.polefigure(grains =  temp.rve, csym='cubic')
         mypf.pf(pole=[[1,0,0],[1,1,0],[1,1,1]], mode='contourf', ifig=2)
         plt.show()
-        pass
 
     if irandom==True:
         filename='iso.cmb'
         FILE = open(filename, 'w')
         FILE.writelines('%s\n%s\n%s\n %s %i\n'%(
                 time.asctime(),'Current texture file was made by cmb.py',
-                'contact: youngung.jeong@gmail.com',
+                'Contact: youngung.jeong@gmail.com',
                 'B', int(ngrain)))
         for i in range(len(temp.gr)):
-            FILE.writelines('%11.7f %11.7f %11.7f  %10.4e \n'%
+
+
+            FILE.writelines('%8.3f %8.3f %8.3f %10.4e \n'%
                             (temp.gr[i][0], temp.gr[i][1],
                              temp.gr[i][2], temp.gr[i][3]))
-            pass
         FILE.close()
-        #np.savetxt(filename, temp.gr)
         print 'The random isotropic aggregate is written to %s'%filename
-        pass
-    pass
 
 if __name__=='__main__':
     import getopt, sys
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                                    'i:n:o:sr')
+                                    'i:n:o:s:pr')
         pass
     except getopt.GetoptError, err:
         print str(err)
@@ -591,23 +539,22 @@ if __name__=='__main__':
     ngrain = 2000
     outputfile ='temp.cmb'
     irandom = False
+    ssym = None
     ## ----------------- ##
 
     for o, a in opts:
         if o in ('-i'): inputfile = a
         elif o in ('-n'): ngrain = int(a)
         elif o in ('-o'): outputfile = a
-        elif o in ('-s'): iplot=True
+        elif o in ('-p'): iplot=True
         elif o in ('-r'): irandom=True
+        elif o in ('-s'): ssym = a
         else: assert False, 'Unhandled option'
         pass
 
-    main(odf=inputfile, ngrain=ngrain,
-         outputfile=outputfile, iplot=iplot,
-         irandom=irandom
-         )
-
-    pass
+    main(odf=inputfile,ngrain=ngrain,
+         outputfile=outputfile,iplot=iplot,
+         irandom=irandom,ssym=ssym)
 
 
 def random_gen(ngrain=100,mmm=False,phi1=360,phi2=360,phi=360):
